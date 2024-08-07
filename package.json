@@ -1,0 +1,22 @@
+{
+    "name": "docusaurus-plugin-discourse-comments",
+    "version": "1.0.5",
+    "description": "A Docusaurus plugin for embedding Discourse comments",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "docusaurus",
+        "docusaurus-plugin",
+        "discourse",
+        "comments"
+    ],
+    "author": "Marcos Lisboa",
+    "license": "MIT",
+    "peerDependencies": {
+        "@docusaurus/core": "^3.0.0",
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0"
+    }
+}
