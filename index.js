@@ -35,6 +35,14 @@ module.exports = function(context, options) {
                 discourseUrl: '${discourseUrl}',
                 discourseEmbedUrl: '' // This will be set dynamically in discourse-comments.js
               };
+              window.DiscourseCommentsPluginConfig = {
+                discourseUrl: '${discourseUrl}',
+                discourseUserName: '${discourseUserName}',
+                debugMode: ${debugMode},
+                embedRoutes: ${JSON.stringify(embedRoutes)},
+                baseUrl: '${baseUrl}',
+                siteUrl: '${url}'
+              };
             `,
           },
           {

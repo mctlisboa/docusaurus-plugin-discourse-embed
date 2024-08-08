@@ -4,24 +4,21 @@ import { useEffect, useState } from 'react';
 import { useLocation } from '@docusaurus/router';
 import { usePluginData } from '@docusaurus/useGlobalData';
 
-// Store the plugin configuration globally
-let globalPluginConfig = null;
-
 function DiscourseComments() {
   const location = useLocation();
   const pluginData = usePluginData('docusaurus-plugin-discourse-comments');
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [config, setConfig] = useState(null);
   
   useEffect(() => {
-    // Update global plugin config whenever it changes
-    globalPluginConfig = pluginData;
-    setIsLoaded(true);
+    if (window.DiscourseCommentsPluginConfig) {
+      setConfig(window.DiscourseCommentsPluginConfig);
+    } else if (pluginData) {
+      setConfig(pluginData);
+    }
   }, [pluginData]);
 
-  const { discourseUrl, discourseUserName, debugMode, embedRoutes, baseUrl, siteUrl } = pluginData;
-
   const debugLog = (message, data) => {
-    if (debugMode) {
+    if (config && config.debugMode) {
       console.log(`[Discourse Comments Debug] ${message}`, data);
     }
   };
@@ -29,7 +26,10 @@ function DiscourseComments() {
   const findSuitableContainer = () => {
     const selectors = [
       'article',
-      '.theme-doc-markdown'
+      '.theme-doc-markdown',
+      '.markdown',
+      'main',
+      '#__docusaurus'
     ];
 
     for (const selector of selectors) {
@@ -50,20 +50,21 @@ function DiscourseComments() {
       } else if (attempts < maxAttempts) {
         attempts++;
         setTimeout(checkElement, interval);
-      } else if (debugMode) {
-        console.error('Suitable container for Discourse comments not found after maximum attempts');
+      } else {
+        debugLog('Suitable container for Discourse comments not found after maximum attempts');
       }
     };
 
     checkElement();
   };
 
-  const constructEmbedUrl = (path) => {
-    return `${siteUrl}${baseUrl.slice(1)}${path.slice(1)}`;
+  const constructEmbedUrl = () => {
+    const currentUrl = new URL(window.location.href);
+    return currentUrl.origin + currentUrl.pathname;
   };
 
   const shouldEmbed = (path) => {
-    return embedRoutes.some(route => {
+    return config.embedRoutes.some(route => {
       if (route.endsWith('*')) {
         return path.startsWith(route.slice(0, -1));
       }
@@ -77,7 +78,7 @@ function DiscourseComments() {
 
     const canEmbed = shouldEmbed(currentPath);
     debugLog('Should embed comments:', canEmbed);
-    debugLog('Embed routes:', embedRoutes);
+    debugLog('Embed routes:', config.embedRoutes);
 
     if (canEmbed) {
       waitForElement((container) => {
@@ -96,11 +97,11 @@ function DiscourseComments() {
         container.parentNode.insertBefore(embedContainer, container.nextSibling);
         debugLog('New embed container inserted');
 
-        const discourseEmbedUrl = constructEmbedUrl(currentPath);
+        const discourseEmbedUrl = constructEmbedUrl();
         debugLog('Constructed embed URL:', discourseEmbedUrl);
         
         window.DiscourseEmbed = {
-          discourseUrl: discourseUrl,
+          discourseUrl: config.discourseUrl,
           discourseEmbedUrl: discourseEmbedUrl,
         };
 
@@ -109,7 +110,7 @@ function DiscourseComments() {
         const embedScript = document.createElement('script');
         embedScript.type = 'text/javascript';
         embedScript.async = true;
-        embedScript.src = `${discourseUrl}javascripts/embed.js`;
+        embedScript.src = `${config.discourseUrl}javascripts/embed.js`;
         document.body.appendChild(embedScript);
 
         debugLog('Embed script appended to body:', embedScript.src);
@@ -128,9 +129,9 @@ function DiscourseComments() {
   };
 
   useEffect(() => {
-    if (isLoaded) {
+    if (config) {
       debugLog('useEffect triggered. Location:', location);
-      debugLog('Plugin configuration:', { discourseUrl, discourseUserName, debugMode, embedRoutes, baseUrl, siteUrl });
+      debugLog('Plugin configuration:', config);
       renderComments();
     }
 
@@ -141,7 +142,7 @@ function DiscourseComments() {
         debugLog('Cleanup: Removed existing embed');
       }
     };
-  }, [location, isLoaded, discourseUrl, discourseUserName, debugMode, embedRoutes, baseUrl, siteUrl]);
+  }, [location, config]);
 
   return null;
 }
@@ -150,15 +151,14 @@ function DiscourseComments() {
 if (typeof window !== 'undefined') {
   window.DiscourseCommentsComponent = DiscourseComments;
   window.renderDiscourseComments = () => {
-    if (!globalPluginConfig) {
-      console.error('Discourse Comments Plugin: Global data not found. Please ensure the plugin is properly initialized.');
+    const config = window.DiscourseCommentsPluginConfig;
+    if (!config) {
+      console.error('Discourse Comments Plugin: Configuration not found. Please ensure the plugin is properly initialized.');
       return;
     }
 
-    const { discourseUrl, discourseUserName, debugMode, embedRoutes, baseUrl, siteUrl } = globalPluginConfig;
-
     const debugLog = (message, data) => {
-      if (debugMode) {
+      if (config.debugMode) {
         console.log(`[Discourse Comments Debug] ${message}`, data);
       }
     };
@@ -168,7 +168,10 @@ if (typeof window !== 'undefined') {
     const findSuitableContainer = () => {
       const selectors = [
         'article',
-        '.theme-doc-markdown'
+        '.theme-doc-markdown',
+        '.markdown',
+        'main',
+        '#__docusaurus'
       ];
 
       for (const selector of selectors) {
@@ -197,12 +200,13 @@ if (typeof window !== 'undefined') {
       checkElement();
     };
 
-    const constructEmbedUrl = (path) => {
-      return `${siteUrl}${baseUrl.slice(1)}${path.slice(1)}`;
+    const constructEmbedUrl = () => {
+      const currentUrl = new URL(window.location.href);
+      return currentUrl.origin + currentUrl.pathname;
     };
 
     const shouldEmbed = (path) => {
-      return embedRoutes.some(route => {
+      return config.embedRoutes.some(route => {
         if (route.endsWith('*')) {
           return path.startsWith(route.slice(0, -1));
         }
@@ -215,7 +219,7 @@ if (typeof window !== 'undefined') {
 
     debugLog('Current path:', currentPath);
     debugLog('Should embed comments:', canEmbed);
-    debugLog('Embed routes:', embedRoutes);
+    debugLog('Embed routes:', config.embedRoutes);
 
     if (canEmbed) {
       waitForElement((container) => {
@@ -233,10 +237,10 @@ if (typeof window !== 'undefined') {
         container.parentNode.insertBefore(embedContainer, container.nextSibling);
         debugLog('New embed container inserted');
 
-        const discourseEmbedUrl = constructEmbedUrl(currentPath);
+        const discourseEmbedUrl = constructEmbedUrl();
         
         window.DiscourseEmbed = {
-          discourseUrl: discourseUrl,
+          discourseUrl: config.discourseUrl,
           discourseEmbedUrl: discourseEmbedUrl,
         };
 
@@ -245,7 +249,7 @@ if (typeof window !== 'undefined') {
         const embedScript = document.createElement('script');
         embedScript.type = 'text/javascript';
         embedScript.async = true;
-        embedScript.src = `${discourseUrl}javascripts/embed.js`;
+        embedScript.src = `${config.discourseUrl}javascripts/embed.js`;
         document.body.appendChild(embedScript);
 
         debugLog('Embed script appended to body:', embedScript.src);
@@ -268,16 +272,16 @@ export default {
   onRouteUpdate({ location }) {
     // Delay the execution to ensure the plugin data is available
     setTimeout(() => {
-      if (globalPluginConfig) {
+      if (window.DiscourseCommentsPluginConfig) {
         window.renderDiscourseComments();
       } else {
-        console.error('Discourse Comments Plugin: Global data not available on route update. Retrying...');
+        console.error('Discourse Comments Plugin: Configuration not available on route update. Retrying...');
         // Retry after a short delay
         setTimeout(() => {
-          if (globalPluginConfig) {
+          if (window.DiscourseCommentsPluginConfig) {
             window.renderDiscourseComments();
           } else {
-            console.error('Discourse Comments Plugin: Global data still not available. Please check your plugin configuration.');
+            console.error('Discourse Comments Plugin: Configuration still not available. Please check your plugin configuration.');
           }
         }, 500);
       }
