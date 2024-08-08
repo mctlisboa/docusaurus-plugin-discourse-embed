@@ -5,11 +5,12 @@ const path = require('path');
 /** @type {import('@docusaurus/types').PluginModule} */
 module.exports = function(context, options) {
   const {
-    siteConfig: { baseUrl },
+    siteConfig: { baseUrl, url },
   } = context;
 
   const {
     discourseUrl,
+    discourseUserName,
     debugMode = false,
     embedRoutes = ['/docs/*', '/blog/*'],
   } = options;
@@ -32,11 +33,16 @@ module.exports = function(context, options) {
             innerHTML: `
               window.DiscourseEmbed = {
                 discourseUrl: '${discourseUrl}',
-                debugMode: ${debugMode},
-                embedRoutes: ${JSON.stringify(embedRoutes)},
-                baseUrl: '${baseUrl}',
+                discourseEmbedUrl: '' // This will be set dynamically in discourse-comments.js
               };
             `,
+          },
+          {
+            tagName: 'meta',
+            attributes: {
+              name: 'discourse-username',
+              content: discourseUserName,
+            },
           },
         ],
       };
@@ -44,11 +50,16 @@ module.exports = function(context, options) {
 
     async contentLoaded({ actions }) {
       const { setGlobalData } = actions;
+      console.log('Discourse Comments Plugin: Setting global data');
       setGlobalData({
         discourseUrl,
+        discourseUserName,
         debugMode,
         embedRoutes,
+        baseUrl,
+        siteUrl: url,
       });
+      console.log('Discourse Comments Plugin: Global data set');
     },
   };
 };

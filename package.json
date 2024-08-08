@@ -1,6 +1,6 @@
 {
     "name": "docusaurus-plugin-discourse-comments",
-    "version": "1.0.5",
+    "version": "1.0.14",
     "description": "A Docusaurus plugin for embedding Discourse comments",
     "main": "index.js",
     "scripts": {
